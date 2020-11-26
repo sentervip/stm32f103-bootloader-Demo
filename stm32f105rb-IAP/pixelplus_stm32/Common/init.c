@@ -112,8 +112,8 @@ void MYRCC_DeInit(void)
 #ifdef  VECT_TAB_RAM
 	MY_NVIC_SetVectorTable(0x20000000, 0x0);
 #else   
-	//MY_NVIC_SetVectorTable(0x08000000,0x0);
-	MY_NVIC_SetVectorTable(0x08000000,0x03000); // by aizj md  must be same to app1
+	MY_NVIC_SetVectorTable(0x08000000,0x0);
+	//MY_NVIC_SetVectorTable(0x08000000,0x03000); // by aizj md  must be same to app1
 #endif
 }
 void ReSetVectorTable(void)
@@ -260,14 +260,12 @@ static void Set_GPIO_Port(void)
 
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |	\
-		RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD |RCC_APB2Periph_AFIO	\
-		, ENABLE);
+		RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD |RCC_APB2Periph_AFIO, ENABLE);
 
-	/* for can tx and usb_disconnect pin */
+	/* GPIO_A for can tx and usb_disconnect pin */
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Pin = \
-		 GPIO_Pin_8|GPIO_Pin_12;
+	GPIO_InitStructure.GPIO_Pin =GPIO_Pin_8|GPIO_Pin_12;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	/* for can rx and KEY test */
@@ -275,21 +273,17 @@ static void Set_GPIO_Port(void)
 	//pa11 - can rx
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_InitStructure.GPIO_Pin = \
-		GPIO_Pin_1 |   GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1 |   GPIO_Pin_11;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+	//GPIO_B  BUZZER_EN
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_WriteBit(GPIOB, GPIO_Pin_1, 0);
 
-
-        
-
-
-
-
-
-
-
-
-
+#if 0
 	/* START 5DIR_KEY GPIO PIN */
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_InitStructure.GPIO_Pin =  \
@@ -304,7 +298,7 @@ static void Set_GPIO_Port(void)
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1;  //PB1 = sw5
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	/* END 5DIR_KEY GPIO PIN SET */
-
+#endif
 
 	/* for PI5008K_MCU_CON0,1 PIN */
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
@@ -319,18 +313,10 @@ static void Set_GPIO_Port(void)
 
 	
 	/* for AD KEY TEST */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;  //ADKEY
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-
-
-
-
-
-
+//	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;  //ADKEY
+//	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	/* for test */
-
 	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_4|GPIO_Pin_5|GPIO_Pin_6|GPIO_Pin_7;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
@@ -657,10 +643,10 @@ void uComOnChipInitial(void)
 	Set_GPIO_Port();
 	Set_Timer();
 
-	Set_I2C_Port();
+//	Set_I2C_Port();
 
 	Set_Remocon();
-	Set_5Dir_Sw();
+//	Set_5Dir_Sw();
 	//EXTI0_Config();
 	
 	//Set_Can_Init();
