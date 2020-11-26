@@ -59,7 +59,7 @@ int i;
 	//	GPIO_Configuration();
 		do
 		{				
-			UART1_PRINTF("loop\n");
+			
 			PI5008K_UartCmdProcessing();
 			//PI5008K_remocon_test(); 
 			PI5008K_remocon_test_longkey();

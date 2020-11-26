@@ -4,22 +4,40 @@
 #include "stmflash.h"
 #include "iap.h"
 
-//////////////////////////////////////////////////////////////////////////////////	 
-//本程序只供学习使用，未经作者许可，不得用于其它任何用途
-//ALIENTEK NANO STM32开发板
-//IAP 代码   
-//正点原子@ALIENTEK
-//技术论坛:www.openedv.com
-//修改日期:2018/3/27
-//版本：V1.0
-//版权所有，盗版必究。
-//Copyright(C) 广州市星翼电子科技有限公司 2018-2028
-//All rights reserved									  
-//////////////////////////////////////////////////////////////////////////////////	
-
 iapfun jump2app; 
+MountPointStr MoutPointTag = {0};
 u16 iapbuf[FLASH_PAGE_SIZE/2] ={0xff};   
-u16 iapbuf2[FLASH_PAGE_SIZE/2] ={0xff};   
+u16 iapbuf2[FLASH_PAGE_SIZE/2] ={0xff};  
+//                sync  cmd DataLen data xor
+
+
+void parse_mountPoint(void)
+{
+   STMFLASH_Read(FLASH_CFG_MP_ADDR, &MoutPointTag.magic, 4);
+	 if(MoutPointTag.magic == FLASH_CFG_MAGIC){
+	     if(MoutPointTag.running == 1){
+				    MoutPointTag.app2 = 1;
+				    MoutPointTag.app1 = FLASH_INVALID_DATA;
+				    printf("app 1 update failed\n");
+		   }else if(MoutPointTag.running == 2){
+			      MoutPointTag.app1 = 1;
+				    MoutPointTag.app2 = FLASH_INVALID_DATA;
+				    printf("app 1 update failed\n");
+			 }else{
+			     return;
+			 }
+			 MoutPointTag.running == FLASH_INVALID_DATA;	 
+			 UART2_send(AckFail,sizeof(AckFail));
+			 STMFLASH_Write(FLASH_CFG_MP_ADDR,&MoutPointTag.magic,4);
+	 }else{
+		   printf("reset factory mode\n");
+		   MoutPointTag.magic = FLASH_CFG_MAGIC;
+		   MoutPointTag.app1 = 1;
+		   MoutPointTag.app2 = FLASH_INVALID_DATA;
+		   MoutPointTag.running = FLASH_INVALID_DATA;
+	     STMFLASH_Write(FLASH_CFG_MP_ADDR,&MoutPointTag.magic,4);
+	 } 
+}
 //appxaddr:应用程序的起始地址
 //appbuf:应用程序CODE.
 //appsize:应用程序大小(字节).
@@ -61,8 +79,8 @@ void iap_readback_appbin(u32 appxaddr,u8 *appbuf,u32 appsize)
 		}
 		
 		for(int i=0;i<RX_CNT;i++){
-			if(data8[i] != USART_RX_BUF[i+k*2048]){
-				printf("data8: 0x%x != USART_RX_BUF:0x%x, %d\n", data8[i],USART_RX_BUF[i+k*2048],i);
+			if(data8[i] != usart2_rx_buf[i+k*2048]){
+				printf("data8: 0x%x != usart2_rx_buf:0x%x, %d\n", data8[i],usart2_rx_buf[i+k*2048],i);
 			}
 		}
 		k++;
