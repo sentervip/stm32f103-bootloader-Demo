@@ -1,6 +1,6 @@
 #ifndef __PI5008K_FUNC_H__
 #define __PI5008K_FUNC_H__
-
+#include <stdint.h>
 
 
 enum Rem_Key_Enum {
@@ -20,7 +20,15 @@ enum Rem_Key_Enum {
   REM_NAVI_LONG,
   REM_MAX, 
 };
-
+enum Rem_VIEW_Enum {
+  VIEW_DEFAULT = 0x0,
+	VIEW_2 = 0x02,
+	VIEW_4 = 0x04,
+	VIEW_5 = 0x05,	
+	VIEW_6 = 0x06,
+	VIEW_8 = 0x08,
+	VIEW_INVALID,
+};
 
 #define PI5008K_USART_BUFFER_SIZE 50
 
@@ -29,6 +37,7 @@ void PI5008K_Init(void);
 
 void PI5008K_UartCmdProcessing(void);
 void PI5008K_Uart_Con_Remote_Cmd(unsigned int dir);
+void PI5008K_Uart_Con_Remote_Cmd_View(uint8_t view);
 void PI5008K_Uart_Reg_Single_Write(unsigned int  addr,unsigned int data);
 int PI5008K_5Dir_Key_Read(void);
 int PI5008K_5Dir_Center_Key_Led(void);

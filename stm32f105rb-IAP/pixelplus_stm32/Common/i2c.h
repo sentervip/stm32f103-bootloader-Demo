@@ -14,18 +14,12 @@
 
 #ifndef		__UCOMI2C_H__
 #define		__UCOMI2C_H__
+#include	"..\common\board.h"
+#include <stdio.h>
 
-// -----------------------------------------------------------------------------
-// Include files
-// -----------------------------------------------------------------------------
 
-// -----------------------------------------------------------------------------
-// Struct/Union Types and define
-// -----------------------------------------------------------------------------
-
-// -----------------------------------------------------------------------------
-// Exported function Prototype
-// -----------------------------------------------------------------------------
-// i2c
-
+BYTE I2C_Write(BYTE ID, BOOL Speed, BYTE dAddr, BYTE rAddr, PBYTE pBuff, WORD bytes);
+BYTE I2C_Read(BYTE ID, BOOL Speed, BYTE dAddr, BYTE rAddr, PBYTE pBuff, WORD bytes);
+BYTE I2C_Write16(BYTE ID, BOOL Speed, BYTE dAddr, WORD rAddr, PBYTE pBuff, WORD bytes);
+BYTE I2C_Read16(BYTE ID, BOOL Speed, BYTE dAddr, WORD rAddr, PBYTE pBuff, WORD bytes);
 #endif	/* __UCOMI2C_H__ */

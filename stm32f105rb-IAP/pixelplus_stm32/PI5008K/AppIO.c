@@ -17,8 +17,10 @@
 #include <stdio.h>
 //#include "CAN.h"                                  /* STM32 CAN adaption layer */
 #include "AppIO.h"
+#include "pi5008k_func.h"
 
 volatile uint32_t msTicks;                        /* counts 1ms timeTicks     */
+static  uint8_t g_line_in_old = 0x07;
         
 /*----------------------------------------------------------------------------
   SysTick_Handler
@@ -39,81 +41,62 @@ void Delay_Ms (uint32_t dlyTicks) {
 //  curTicks = msTicks;
   while ((msTicks - curTicks) < dlyTicks);
 }
-
-
-
-//LED灯和按键引脚初始化
-void GPIO_Configuration(void)
+void led_off(uint16_t pin) 
+{
+   GPIO_ResetBits(PORT_LED,pin);
+}
+void led_on(uint16_t pin) 
+{
+   GPIO_SetBits(PORT_LED,pin);
+}
+//#define LED_ON() GPIO_ResetBits(PORT_LED1,LED1_PIN)
+//#define LED1_OFF() GPIO_SetBits(PORT_LED1,LED1_PIN)
+void led_line_init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
-
-	
-	
-	RCC_APB2PeriphClockCmd( RCC_KEY1|RCC_KEY2|RCC_KEY3|RCC_KEY4 , ENABLE); 	
-	RCC_APB2PeriphClockCmd( RCC_LED1|RCC_LED2|RCC_LED3|RCC_LED4 , ENABLE); 	
-	
-	RCC_APB2PeriphClockCmd( RCC_APB2Periph_AFIO , ENABLE); 	
-	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);	
 	
 	/**
 	*	LED 
 	*/					 
-	GPIO_InitStructure.GPIO_Pin = LED1_PIN;
+	GPIO_InitStructure.GPIO_Pin = G_LED | R_LED;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 
-	GPIO_Init(PORT_LED1, &GPIO_InitStructure);
+	GPIO_Init(PORT_LED, &GPIO_InitStructure);
+	led_off(R_LED);
+	led_off(G_LED);
 	
-	GPIO_InitStructure.GPIO_Pin = LED2_PIN;
+	/** PWR_EN */
+	GPIO_InitStructure.GPIO_Pin = CAM_PWR_EN | LCD_PWR_EN;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 
-	GPIO_Init(PORT_LED2, &GPIO_InitStructure);
-	
-	GPIO_InitStructure.GPIO_Pin = LED3_PIN;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 
-	GPIO_Init(PORT_LED3, &GPIO_InitStructure);
-	
-	GPIO_InitStructure.GPIO_Pin = LED4_PIN;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 
-	GPIO_Init(PORT_LED4, &GPIO_InitStructure);
-	
-	/**
-	*	USB ENABLE -> PC5
-	*/		
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 
-	GPIO_ResetBits(GPIOC,GPIO_Pin_15);
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
+	GPIO_Init(PORT_EN_OUT, &GPIO_InitStructure);
 
-
-		/**
-	*	DI -> PB12-PPB15
-	*/	
-	GPIO_InitStructure.GPIO_Pin = KEY1_PIN;
+	
+   /** LINE IN */
+	GPIO_InitStructure.GPIO_Pin = GEAR_LINE_IN | L_LINE_IN |R_LINE_IN;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; 
-	GPIO_Init(PORT_KEY1, &GPIO_InitStructure);
-	
-	GPIO_InitStructure.GPIO_Pin = KEY2_PIN;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; 
-	GPIO_Init(PORT_KEY2, &GPIO_InitStructure);
-	
-	GPIO_InitStructure.GPIO_Pin = KEY3_PIN;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; 
-	GPIO_Init(PORT_KEY3, &GPIO_InitStructure);
-	
-	GPIO_InitStructure.GPIO_Pin = KEY4_PIN;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; 
-	GPIO_Init(PORT_KEY4, &GPIO_InitStructure);
+	GPIO_Init(PORT_LINE_IN, &GPIO_InitStructure);
+}
 
-	LED1_ON();
-	LED2_OFF();
-	LED3_OFF();
-	LED4_OFF();
-
+void poll_line_in(void)
+{
+   uint16_t data = 0;
+	
+	data = GPIO_ReadInputData(PORT_LINE_IN);
+	data &= (GEAR_LINE_IN | L_LINE_IN |R_LINE_IN);
+	data >>=7;
+	if(data != g_line_in_old){
+	    g_line_in_old = data;
+		  switch(data){			    
+				  case 2:  data = VIEW_4; break;
+				  case 3:  data = VIEW_2; break;
+			    case 4:  data = VIEW_6; break;
+				  case 5:  data = VIEW_8; break;				
+				  case 6:  data = VIEW_5; break;	
+				  case 7:  data = VIEW_DEFAULT; break;
+				  default: break;
+			}
+		  PI5008K_Uart_Con_Remote_Cmd_View(data);	 
+	}
 }

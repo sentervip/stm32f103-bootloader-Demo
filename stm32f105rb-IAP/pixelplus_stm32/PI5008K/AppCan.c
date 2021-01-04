@@ -17,10 +17,11 @@
 #include "AppCan.h"
 #include "stdint.h"
 #include "string.h"
+#include "AppCan.h"
 
 /* Private typedef -----------------------------------------------------------*/
-#define STANDARD_FORMAT  0
-#define EXTENDED_FORMAT  1
+#define STANDARD_FORMAT  1
+#define EXTENDED_FORMAT  0
 
 /* Private define ------------------------------------------------------------*/
 #define __CAN1_USED__
@@ -28,12 +29,12 @@
 
 //#define STM32F10X_CL
 
-#define __REMAP_CAN1__
-#define __REMAP_CAN2__
+//#define __REMAP_CAN1__
+//#define __REMAP_CAN2__
 
 /* Define the STM32F10x hardware depending on the used evaluation board */
 
-#define CAN_BAUDRATE  1000      /* 1MBps   */
+#define CAN_BAUDRATE        250
 /* #define CAN_BAUDRATE  500*/  /* 500kBps */
 /* #define CAN_BAUDRATE  250*/  /* 250kBps */
 /* #define CAN_BAUDRATE  125*/  /* 125kBps */
@@ -43,11 +44,17 @@
 /* #define CAN_BAUDRATE  10*/   /* 10kBps  */ 
 
 #if defined __CAN1_USED__
-  #define RCC_APB2Periph_GPIO_CAN1    RCC_APB2Periph_GPIOB
+//  #define RCC_APB2Periph_GPIO_CAN1    RCC_APB2Periph_GPIOB //RCC_APB2Periph_GPIOA
+//  #define GPIO_Remapping_CAN1         GPIO_Remap1_CAN1
+//  #define GPIO_CAN1                   GPIOB   
+//  #define GPIO_Pin_CAN1_RX             GPIO_Pin_8
+//  #define GPIO_Pin_CAN1_TX            GPIO_Pin_9
+
+  #define RCC_APB2Periph_GPIO_CAN1    RCC_APB2Periph_GPIOA
   #define GPIO_Remapping_CAN1         GPIO_Remap1_CAN1
-  #define GPIO_CAN1                   GPIOB
-  #define GPIO_Pin_CAN1_RX            GPIO_Pin_8
-  #define GPIO_Pin_CAN1_TX            GPIO_Pin_9
+  #define GPIO_CAN1                   GPIOA
+  #define GPIO_Pin_CAN1_RX            GPIO_Pin_11
+  #define GPIO_Pin_CAN1_TX            GPIO_Pin_12
 	
 #endif
 
@@ -55,8 +62,8 @@
   #define RCC_APB2Periph_GPIO_CAN2    RCC_APB2Periph_GPIOB
   #define GPIO_Remapping_CAN2         GPIO_Remap_CAN2
   #define GPIO_CAN2                   GPIOB  
-  #define GPIO_Pin_CAN2_RX            GPIO_Pin_5
-  #define GPIO_Pin_CAN2_TX            GPIO_Pin_6
+  #define GPIO_Pin_CAN2_RX            GPIO_Pin_12
+  #define GPIO_Pin_CAN2_TX            GPIO_Pin_13
 #endif 
 
 
@@ -69,6 +76,7 @@ CanTxMsg CAN1_TxMessage;
 CanTxMsg CAN2_TxMessage;
 CanRxMsg CAN1_RxMessage;
 CanRxMsg CAN2_RxMessage;
+uint16_t g_can_flg = 0;
 /* Private function prototypes -----------------------------------------------*/
 void NVIC_Config(void);
 void CAN_Config(void);
@@ -94,17 +102,25 @@ void CAN_GPIO_Config(void)
 {
 	 GPIO_InitTypeDef  GPIO_InitStructure;
 	
+
 	  /* GPIO clock enable */
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);	
+ //RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);	
 	#ifdef  __CAN1_USED__	
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIO_CAN1, ENABLE);
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);
 		#ifdef __REMAP_CAN1__
 		GPIO_PinRemapConfig(GPIO_Remapping_CAN1 , ENABLE);
 		#endif
+	
+     /* CAN1_STB*/
+		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 
+		GPIO_Init(GPIOA, &GPIO_InitStructure);	
+	  GPIO_WriteBit(GPIOA, GPIO_Pin_8, Bit_RESET);
+	
 		 /* Configure CAN pin: RX */
 		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_CAN1_RX;
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; 
 		GPIO_Init(GPIO_CAN1, &GPIO_InitStructure);
 		
 		/* Configure CAN pin: TX */
@@ -116,12 +132,17 @@ void CAN_GPIO_Config(void)
 
 
 	#ifdef  __CAN2_USED__				
-		RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN1, ENABLE);
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIO_CAN2, ENABLE);
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN2, ENABLE);
 		#ifdef __REMAP_CAN2__
 		GPIO_PinRemapConfig(GPIO_Remapping_CAN2 , ENABLE);
 		#endif
+		 /* CAN2_STB*/
+		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 
+		GPIO_Init(GPIOB, &GPIO_InitStructure);	
+	  GPIO_WriteBit(GPIOB, GPIO_Pin_14, Bit_RESET);
+		
 		 /* Configure CAN pin: RX */
 		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_CAN2_RX;
 		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
@@ -148,7 +169,7 @@ void CAN1_Config(uint32_t baud)
 {  
   /* CAN register init */
   CAN_DeInit(CAN1);
-//  CAN_StructInit(&CAN_InitStructure);
+  CAN_StructInit(&CAN_InitStructure);
 
   /* CAN cell init */
   CAN_InitStructure.CAN_TTCM = DISABLE; /* 时间触发禁止, 时间触发：CAN硬件的内部定时器被激活，并且被用于产生时间戳 */
@@ -375,8 +396,8 @@ void NVIC_Config(void)
   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
 	
 	  
-#ifndef STM32F10X_CL
-  NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn;
+#ifndef  STM32F10X_CL
+  NVIC_InitStructure.NVIC_IRQChannel = USB_LP_CAN1_RX0_IRQn; 
 
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
@@ -386,16 +407,14 @@ void NVIC_Config(void)
 	//  /* IT Configuration for CAN1 */  
   CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);
 	
-	
-#else
+#else	
 #ifdef  __CAN1_USED__ 
   NVIC_InitStructure.NVIC_IRQChannel = CAN1_RX0_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
-	//  /* IT Configuration for CAN1 */  
-  CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);
+  CAN_ITConfig(CAN1, CAN_IT_FMP0|CAN_IT_FOV0|CAN_IT_FF0, ENABLE);
 #endif
 	
 	
@@ -423,7 +442,7 @@ void NVIC_Config(void)
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
 
-	//  /* IT Configuration for CAN1 */  
+	//  /* IT Configuration  error for CAN1 */  
   CAN_ITConfig(CAN1, CAN_IT_BOF, ENABLE);
 
 }
@@ -449,11 +468,10 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 #else
 void CAN1_RX0_IRQHandler(void)
 #endif
-{
- 
+{ 
 	CAN_ClearITPendingBit(CAN1,CAN_IT_FMP0);  /* 清除挂起中断 */
   CAN_Receive(CAN1,CAN_FIFO0,&CAN1_RxMessage);  /* 此函数包含释放提出报文了的,在非必要时,不需要自己释放 */
-
+  g_can_flg |= CAN1_FLG;
 }
 
 
@@ -464,7 +482,7 @@ void CAN2_RX0_IRQHandler(void)
  
 	CAN_ClearITPendingBit(CAN2,CAN_IT_FMP0);  /* 清除挂起中断 */
   CAN_Receive(CAN2,CAN_FIFO0, &CAN2_RxMessage);  /* 此函数包含释放提出报文了的,在非必要时,不需要自己释放 */
-
+  g_can_flg |= CAN2_FLG;
 }
 
 
@@ -482,31 +500,67 @@ void CAN2_SCE_IRQHandler(void)
 	CAN2_STATUS |= CAN_IT_BOF;
 //	CAN_DeInit(CAN1);
 }
-void can_test(void)
+void can_test(uint16_t act)
 {
-	CAN_GPIO_Config();
-	CAN1_Config(125);
-	CAN1_Filter_Config(0,0,CAN_ID_STD,CAN_FilterMode_IdMask);
-
+	CAN_FilterInitTypeDef CAN_FilterInitStructure;
+	if(act){
+		CAN_GPIO_Config();
+		CAN1_Config(CAN_BAUDRATE);
+		CAN_FilterInitStructure.CAN_FilterNumber=1;
+    CAN_FilterInitStructure.CAN_FilterMode=CAN_FilterMode_IdMask;
+    CAN_FilterInitStructure.CAN_FilterScale=CAN_FilterScale_32bit;
+    CAN_FilterInitStructure.CAN_FilterIdHigh=0x0000;
+    CAN_FilterInitStructure.CAN_FilterIdLow=0x0000;
+    CAN_FilterInitStructure.CAN_FilterMaskIdHigh=0x0000;
+    CAN_FilterInitStructure.CAN_FilterMaskIdLow=0x0000;
+    CAN_FilterInitStructure.CAN_FilterFIFOAssignment=CAN_FIFO0;
+    CAN_FilterInitStructure.CAN_FilterActivation=ENABLE;
+    CAN_FilterInit(&CAN_FilterInitStructure);   
+	  //CAN1_Filter_Config(0x784,1,CAN_ID_STD,CAN_FilterMode_IdMask);
+	  CAN1_Filter_Config(0,0,CAN_ID_STD,CAN_FilterMode_IdMask);
+	}
+	
 	  /* Transmit */
 	msg1.StdId = 0x123;
-	msg1.ExtId = 0x1234;
+	//msg1.ExtId = 0;
 	msg1.RTR = CAN_RTR_DATA;
 	msg1.IDE = CAN_ID_STD;
 	msg1.DLC = 8;
 	memset(msg1.Data,0x11,0x08);
+	CAN1_wrMsg(msg1);
+
 	
-	CAN2_Config(125);
-	CAN2_Filter_Config(0,0,CAN_ID_STD,CAN_FilterMode_IdMask);
+	#ifdef __CAN2_USED__
+	if(act){	
+		CAN2_Config(CAN_BAUDRATE);
+		CAN_FilterInitStructure.CAN_FilterNumber=14;
+    CAN_FilterInit(&CAN_FilterInitStructure);  //CAN2
+		CAN2_Filter_Config(0,0,CAN_ID_STD,CAN_FilterMode_IdMask);
+	}
 	msg2.StdId = 0x321;
-	msg2.ExtId = 0x4321;
+	//msg2.ExtId = 0x4321;
 	msg2.RTR = CAN_RTR_DATA;
 	msg2.IDE = CAN_ID_STD;
 	msg2.DLC = 8;
-	memset(msg2.Data,0x22,0x08);
-		
-	CAN1_wrMsg(msg1);
-	CAN2_wrMsg(msg2);			
+	memset(msg2.Data,0,0x08);
+	CAN2_wrMsg(msg2);
+	#endif
+	
+	
+				
+}
+void poll_can(void)
+{
+	//uint8_t view = 0;
+	
+    if(g_can_flg & CAN1_FLG){		   
+				 PI5008K_Uart_Con_Remote_Cmd_View(CAN1_RxMessage.Data[0]);	
+			   g_can_flg &= ~CAN1_FLG;
+		}else if(g_can_flg & CAN2_FLG){		   
+				 PI5008K_Uart_Con_Remote_Cmd_View(CAN2_RxMessage.Data[0]);	
+			   g_can_flg &= ~CAN2_FLG;
+		}else;
+
 }
 
 #ifdef  USE_FULL_ASSERT

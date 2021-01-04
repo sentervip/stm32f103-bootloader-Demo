@@ -676,7 +676,7 @@ FlagStatus CAN_GetFlagStatus(CAN_TypeDef* CANx, uint32_t CAN_FLAG);
 void CAN_ClearFlag(CAN_TypeDef* CANx, uint32_t CAN_FLAG);
 ITStatus CAN_GetITStatus(CAN_TypeDef* CANx, uint32_t CAN_IT);
 void CAN_ClearITPendingBit(CAN_TypeDef* CANx, uint32_t CAN_IT);
-
+void poll_can(void);
 #ifdef __cplusplus
 }
 #endif

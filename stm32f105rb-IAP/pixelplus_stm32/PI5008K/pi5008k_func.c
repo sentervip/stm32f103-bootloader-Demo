@@ -7,12 +7,13 @@
 #include "pi5008k_remocon.h"
 #include "AppCan.h"
 #include "pi5008k_func.h"
-#define CMD_PROMPT      ">>"
+#include "AppIO.h"
 #include <stdlib.h>     //NULL pointer definition
 #include <stdarg.h>     // (...) parameter handling
 #include <ctype.h>
 #include <string.h>
 
+#define CMD_PROMPT      ">>"
 static int vfprintf_(void (*putc)(char), const char* str,  va_list arp);
 
 int pi5008k_usart1_buffer_cnt;
@@ -251,7 +252,7 @@ static int vfprintf_(void (*putc)(char), const char* str,  va_list arp)
 void PI5008K_RDK_PrintHelp(void)
 {
 	UART1_PRINTF("==============================================================================================\r\n");	
-	UART1_PRINTF("\"aizj Hello PI5008K RDK\"\r\n");	
+	UART1_PRINTF("\"xx., Ltd. \"\r\n");	
 	UART1_PRINTF("\"reg\"sp\"r\"sp[addr]sp[data]sp[cnt]\\n\r\n");	
 	UART1_PRINTF("\"reg\"sp\"w\"sp[addr]sp[data]\\n\r\n");	
 	UART1_PRINTF("\"reg\"sp\"cw\"sp[addr]sp[data 1]sp[data 2]sp[data 3]sp[data 4]sp[data ...]sp[data N]\\n\r\n");	
@@ -282,13 +283,9 @@ void PI5008K_UART_BUF_INIT(void)
 }
 void PI5008K_Init(void)
 {
-
-	UART1_PRINTF("#####################################################\n\r");
-	UART1_PRINTF("#                  PI5008K RDK                  #\n\r");
-	UART1_PRINTF("#####################################################\n\r");
 	PI5008K_RDK_PrintHelp();
 	PI5008K_UART_BUF_INIT();
-	PI5008K_Reset_Con();	
+	//PI5008K_Reset_Con();	
 
 }
 
@@ -995,11 +992,64 @@ void PI5008K_Uart_Con_Remote_Cmd(unsigned int dir)
 	UART1_PRINTF("send uart data = %s",send_cmd_buf); //send data to pi5008k
 	UART2_PRINTF("%s",send_cmd_buf); //send data to pi5008k
 	//UART2_PRINTF("test"); //send data to pi5008k
-	//UART2_PRINTF("\n"); //send data to pi5008k
-
-	
+	//UART2_PRINTF("\n"); //send data to pi5008k	
 }
+/**
+t con rem default
+t con rem rightRear
+t con rem rightBack
+t con rem driving
+t con rem leftBack
+t con rem rightRear
+*/
+void PI5008K_Uart_Con_Remote_Cmd_View(uint8_t view)
+{
+	char send_cmd_buf[50];
 
+	if(view >= VIEW_INVALID ){
+	    return;
+	}
+	
+	switch (view)
+	{
+		
+		case VIEW_2:
+		{
+			strcpy(send_cmd_buf,"t con rem rightRear");					
+		}
+			break;
+		
+		case VIEW_4:
+		{
+			strcpy(send_cmd_buf,"t con rem rightBack");		
+		}
+			break;
+		case VIEW_5:
+		{
+			strcpy(send_cmd_buf,"t con rem driving");		
+		}
+			break;
+		case VIEW_6:
+		{
+			strcpy(send_cmd_buf,"t con rem leftBack");		
+		}
+			break;
+		case VIEW_8:
+		{
+			strcpy(send_cmd_buf,"t con rem leftRear");		
+		}
+			break;
+		case VIEW_DEFAULT: default:
+		{
+			strcpy(send_cmd_buf,"t con rem default");					
+		}		
+			break;
+	}
+	strcat(send_cmd_buf,PI5008K_UartcmdGetCheckSum((unsigned char *)send_cmd_buf,strlen(send_cmd_buf)));
+	strcat(send_cmd_buf,"\n");
+	UART1_PRINTF("send uart data: %s",send_cmd_buf); 
+	UART2_PRINTF("%s",send_cmd_buf); //send data to pi5008k
+}
 void PI5008K_UartCmdProcessing(void)
 {
 	char i2cData=0;
@@ -1214,13 +1264,23 @@ void PI5008K_LED_TOGGLE(void)
 	{
 		toggle_led_1s++;
 		if(toggle_led_1s%2==0)
-		{
-			GPIO_WriteBit(GPIOB, GPIO_Pin_9, Bit_SET); //Led1 off
-			toggle_led_1s=0;
+		{ 
+			if( g_error_flg == OK_CODE){
+				 GPIO_WriteBit(PORT_LED, G_LED, Bit_SET);  
+				 GPIO_WriteBit(PORT_LED, R_LED, Bit_RESET); 
+			}else{
+			   GPIO_WriteBit(PORT_LED, R_LED, Bit_SET);
+				 GPIO_WriteBit(PORT_LED, G_LED, Bit_RESET);
+			}
+				toggle_led_1s=0;
 		}
 		else
 		{
-			GPIO_WriteBit(GPIOB, GPIO_Pin_9, Bit_RESET); //Led1 on
+			if( g_error_flg == OK_CODE){
+				 GPIO_WriteBit(PORT_LED, G_LED, Bit_RESET);  
+			}else{
+			   GPIO_WriteBit(PORT_LED, R_LED, Bit_RESET);
+			}
 	
 		}
 	}
@@ -1240,9 +1300,9 @@ void TIM4_IRQHandler(void) //10us timer
 //		Check_Timer();
 		tick++;
 		cnt_10us++;
-		//if((cnt_10us%10)==0) cnt_100us++;
-		//if((cnt_100us%10)==0) cnt_1ms++;
-		if((cnt_1ms%1000)==0) cnt_1s++;
+		if((cnt_10us%10)==0) cnt_100us++;
+		if((cnt_100us%10)==0) cnt_1ms++;
+		//if((cnt_1ms%1000)==0) cnt_1s++;
 
 		PI5008K_LED_TOGGLE();
 

@@ -248,32 +248,22 @@ PUTCHAR_PROTOTYPE
 //
 //////////////////////////////////////////////////////////////////////////
 //--------------------------------------------------------------------------------------------------------------------------
-static void Set_GPIO_Port(void)
+static void dog_adc_buzzer_init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
     EXTI_InitTypeDef EXTI_InitStructure;    
     NVIC_InitTypeDef NVIC_InitStructure;    
 
-    /******************** Clock Enable ********************/
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);    
+    /******************** Clock Enable ********************/ 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+	  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |	\
+		                       RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD | \
+	                         RCC_APB2Periph_AFIO, ENABLE);
 
-
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |	\
-		RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD |RCC_APB2Periph_AFIO, ENABLE);
-
-	/* GPIO_A for can tx and usb_disconnect pin */
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Pin =GPIO_Pin_8|GPIO_Pin_12;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-	/* for can rx and KEY test */
-	//pa1 - key
-	//pa11 - can rx
+	/* PA1 - watchdog in */
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1 |   GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
 	//GPIO_B  BUZZER_EN
@@ -283,62 +273,12 @@ static void Set_GPIO_Port(void)
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	GPIO_WriteBit(GPIOB, GPIO_Pin_1, 0);
 
-#if 0
-	/* START 5DIR_KEY GPIO PIN */
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_InitStructure.GPIO_Pin =  \
-		GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15; 	//PC13= sw1, PC14 = sw2, PC15 = sw3
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
-	
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1;  //PA1 = sw4
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1;  //PB1 = sw5
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	/* END 5DIR_KEY GPIO PIN SET */
-#endif
-
-	/* for PI5008K_MCU_CON0,1 PIN */
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_10|GPIO_Pin_11;  //PB10 = con0, PB11 = con1
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	/* for LED GPIO PIN */
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_InitStructure.GPIO_Pin =  \
-		GPIO_Pin_8 | GPIO_Pin_9; //LED
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	
-	/* for AD KEY TEST */
-//	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;  //ADKEY
-//	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	/* for test */
-	GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_4|GPIO_Pin_5|GPIO_Pin_6|GPIO_Pin_7;
+  	//GPIO_C  HW_VER_EN PC12
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);	 
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource4);    
-
-	/* Configure EXTI Line to generate an interrupt */
-	EXTI_InitStructure.EXTI_Line	= EXTI_Line4;
-	EXTI_InitStructure.EXTI_Mode	= EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);    
-
-	/* Enable the EXTI4 Interrupt */
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI4_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-
-
-
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Pin = HW_VER_EN_PIN;
+	GPIO_Init(HW_VER_EN_PORT, &GPIO_InitStructure);
+	GPIO_WriteBit(HW_VER_EN_PORT, HW_VER_EN_PIN, 1);
 }
 
 
@@ -403,7 +343,7 @@ BYTE outdata = 0;
 void Check_Timer(void)
 {
 	outdata = !outdata;
-	GPIO_WriteBit(GPIOB, GPIO_Pin_9, (outdata)?Bit_SET : Bit_RESET);
+	//GPIO_WriteBit(GPIOB, GPIO_Pin_9, (outdata)?Bit_SET : Bit_RESET);  //blink
 }
 
 //--------------------------------------------------------------------------------------------------------------------------
@@ -466,13 +406,14 @@ static void Set_I2C_Port(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	I2C_InitTypeDef I2C_InitStructure;
-#if __USE_I2C_DMA_MODE__ == 1
+#if __USE_I2C_DMA_MODE__ == 0
 	NVIC_InitTypeDef NVIC_InitStructure;  
 #endif
 
 	// Enable IOE_I2C and IOE_I2C_PORT & Alternate Function clocks
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1 | RCC_APB1Periph_I2C2, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
+	//RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1 | RCC_APB1Periph_I2C2, ENABLE);
 		
 	// I2C1 SCL and SDA pins configuration
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
@@ -583,7 +524,7 @@ void Set_Remocon(void)
     EXTI_InitTypeDef EXTI_InitStructure;    
     NVIC_InitTypeDef NVIC_InitStructure;    
 
-	/* for ir rx pin pa0 */
+	/* IR rx pin PA0 */
     /******************** GPIO configure ********************/
     GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_0;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -630,34 +571,21 @@ void Set_5Dir_Sw(void)
 
     
 }
-
-//--------------------------------------------------------------------------------------------------------------------------
 void uComOnChipInitial(void)
 {
-
-
 //	__disable_irq();  
 	Set_USART1();
 	Set_USART2();
-
-	Set_GPIO_Port();
+	dog_adc_buzzer_init();
 	Set_Timer();
-
-//	Set_I2C_Port();
-
+	Set_I2C_Port();
 	Set_Remocon();
 //	Set_5Dir_Sw();
 	//EXTI0_Config();
-	
 	//Set_Can_Init();
-	
-
-	GPIO_WriteBit(GPIOB, GPIO_Pin_8, Bit_SET); //Led2 Off
-	Delay_ms(200);	// delay 200ms
-	GPIO_WriteBit(GPIOB, GPIO_Pin_9, Bit_SET); //Led3 Off
+	//GPIO_WriteBit(GPIOB, GPIO_Pin_8, Bit_SET); //Led2 Off
+	//Delay_ms(200);	// delay 200ms
+	//GPIO_WriteBit(GPIOB, GPIO_Pin_9, Bit_SET); //Led3 Off
 
 //	__enable_irq();
 }
-
-/*  FILE_END_HERE */
-

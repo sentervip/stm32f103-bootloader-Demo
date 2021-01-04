@@ -26,7 +26,15 @@
 #include	"stm32f10x_gpio.h"
 #endif
 
-
+//pin adc and buzzer
+#define  PROTECT_VOL_LOW     (0.73)
+#define  PROTECT_VOL_HIGH     (3.265)
+#define  ADC_CHANNEL_POWER  ADC_Channel_10
+#define  ADC_CHANNEL_VER    ADC_Channel_11
+#define  HW_VER_EN_PORT  GPIOC    
+#define  HW_VER_EN_PIN   GPIO_Pin_12
+#define  BUZZER_EN_PORT     GPIOB
+#define  BUZZER_EN_PIN     GPIO_Pin_1
 // -----------------------------------------------------------------------------
 // Struct/Union Types and define
 // -----------------------------------------------------------------------------
@@ -113,4 +121,6 @@ typedef enum
 // -----------------------------------------------------------------------------
 bool USART_Config(void);
 void ReSetVectorTable(void);
+void CheckPowerStatus(void);
+void GetVersion(void);
 #endif	/* __BOARD_H__ */

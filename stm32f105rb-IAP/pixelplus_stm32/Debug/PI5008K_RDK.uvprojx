@@ -49,7 +49,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>..\Output\</OutputDirectory>
-          <OutputName>PI5008K_RDK</OutputName>
+          <OutputName>ppAVM_MCU_V1.0</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>

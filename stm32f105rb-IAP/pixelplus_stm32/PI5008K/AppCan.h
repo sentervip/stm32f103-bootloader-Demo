@@ -25,6 +25,8 @@
 #define REMOTE_FRAME     1
 
 #define MAX_LENGTH 1000
+#define  CAN1_FLG       0x01
+#define  CAN2_FLG       0x02
 
 typedef struct  {
   unsigned int   id;                 // 29 bit identifier
@@ -60,7 +62,8 @@ void CAN_GPIO_Config(void);
 void CAN2_Config(uint32_t baud);
 void CAN1_Filter_Config(uint32_t can_id,uint8_t CAN_FilterNumber,uint8_t format, uint8_t Filter_Mode );
 void CAN2_Filter_Config(uint32_t can_id,uint8_t CAN_FilterNumber,uint8_t format, uint8_t Filter_Mode );
-void can_test(void);
+void can_test(uint16_t act);
+void poll_can(void);
 extern CanTxMsg msg1;
 extern CanTxMsg msg2;
 #endif // __CAN_H
